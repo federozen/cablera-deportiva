@@ -159,7 +159,56 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
 .run ul{margin:4px 0 0;padding-left:18px;color:var(--muted);font-size:13px}
 
 .login{max-width:420px;margin:12vh auto 0}
+/* navegación principal */
+.nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:8px;align-items:stretch}
+.nav .tab{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;cursor:pointer;min-width:0}
+.nav .tab b{font-family:var(--f-display);font-size:21px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;line-height:1.05;display:flex;gap:8px;align-items:baseline}
+.nav .tab b .n{font-family:var(--f-mono);font-size:12px;font-weight:500;background:var(--accent);color:var(--on-accent);border-radius:999px;padding:0 7px;letter-spacing:0}
+.nav .tab b .n:empty{display:none}
+.nav .tab small{color:var(--muted);font-size:12px;line-height:1.3}
+.nav .tab[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 -3px 0 var(--accent)}
+.nav .help{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:0 14px;cursor:pointer;font-weight:600;color:var(--muted)}
+.ayuda{background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:14px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 20px}
+.ayuda h3{grid-column:1/-1;margin:0;font-family:var(--f-display);font-size:22px;text-transform:uppercase}
+.ayuda div{font-size:13px;color:var(--muted)}
+.ayuda div b{display:block;color:var(--ink);font-size:14px;margin-bottom:2px}
+.ayuda .x{grid-column:1/-1;justify-self:start}
+/* barra de la bandeja */
+.bar{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+.bar .row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end}
+.fld{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);min-width:0}
+.fld select{width:200px;max-width:100%}
+.fld select,.fld input[type=search]{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:14px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink);min-width:0}
+.fld input[type=search]{width:220px}
+.bar .sp{flex:1}
+.bar .toggle{display:none}
+.linkbtn{border:0;background:none;color:var(--accent);cursor:pointer;padding:6px 0;font-size:13px;font-weight:500}
+.leyenda{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);align-items:center}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.resumen-filtro{font-size:13px;color:var(--muted)}
+.resumen-filtro b{color:var(--ink)}
+/* grupos */
+details.grupo{display:flex;flex-direction:column;gap:8px}
+details.grupo>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px 2px;font-family:var(--f-display);font-size:19px;font-weight:600;text-transform:uppercase;letter-spacing:.02em;border-bottom:2px solid var(--ink)}
+details.grupo>summary::-webkit-details-marker{display:none}
+details.grupo>summary::before{content:"▾";font-size:14px;color:var(--muted);transition:transform .15s}
+details.grupo:not([open])>summary::before{transform:rotate(-90deg)}
+details.grupo>summary .n{font-family:var(--f-mono);font-size:12px;font-weight:400;color:var(--muted)}
+details.grupo>summary .alta{font-family:var(--f-ui);font-size:11px;font-weight:600;color:var(--alta);text-transform:none;letter-spacing:0}
+details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.tema{font-family:var(--f-ui);font-size:11px;font-weight:600;color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:0 6px}
 @media (max-width:820px){
+  .nav{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .nav .tab{padding:8px 10px}
+  .nav .tab small{display:none}
+  .nav .tab b{font-size:15px;flex-wrap:wrap;gap:4px}
+  .bar .toggle{display:inline-flex}
+  .bar:not(.abierta) .row.mas{display:none}
+  .fld select{width:100%}
+  .nav .help{grid-column:1/-1;padding:8px}
+  .fld{flex:1 1 45%}
+  .fld input[type=search]{width:100%}
+  .fld.q{flex:1 1 100%}
   .desk{grid-template-columns:minmax(0,1fr)}
   article.note{position:static;max-height:none}
   .desk.reading .list{display:none}
@@ -193,22 +242,60 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
   </section>
 
   <main id="app" hidden>
-    <nav class="views" aria-label="Secciones" id="views">
-      <button type="button" data-view="bandeja" aria-pressed="true">Bandeja<span class="n" id="vn-bandeja"></span></button>
-      <button type="button" data-view="fuentes" aria-pressed="false">Fuentes<span class="n" id="vn-fuentes"></span></button>
-      <button type="button" data-view="actividad" aria-pressed="false">Actividad</button>
+    <nav class="nav" aria-label="Secciones" id="views">
+      <button type="button" class="tab" data-view="bandeja" aria-pressed="true"><b>Bandeja <span class="n" id="vn-bandeja"></span></b><small>Los comunicados capturados. Elegí uno y pedí la nota.</small></button>
+      <button type="button" class="tab" data-view="fuentes" aria-pressed="false"><b>Fuentes <span class="n" id="vn-fuentes" style="background:var(--line);color:var(--ink)"></span></b><small>De dónde se capturan, si funcionan y cómo agregar más.</small></button>
+      <button type="button" class="tab" data-view="actividad" aria-pressed="false"><b>Actividad</b><small>Cada captura, errores, notas viejas y ajustes.</small></button>
+      <button type="button" class="help" id="b-ayuda" aria-expanded="false">? Cómo se usa</button>
     </nav>
+    <section class="ayuda" id="ayuda" hidden>
+      <h3>Cómo se usa la Cablera</h3>
+      <div><b>1 · Llegan solos</b>Cada 2 horas se leen las fuentes oficiales y los comunicados nuevos caen en <i>Nuevas</i>. También podés tocar <i>↻ Capturar ahora</i>.</div>
+      <div><b>2 · Elegís</b>Ordená por <i>Más recientes</i> o <i>Más importantes</i>, agrupá por tema (Boca, River, Selección, Tenis…) y filtrá por período, deporte o fuente.</div>
+      <div><b>3 · Pedís la nota</b>Abrí un comunicado y tocá <i>✦ Redactar nota</i>: la IA arma título, bajada y cuerpo estilo Olé. Solo ahí se usa IA.</div>
+      <div><b>4 · Al CMS</b><i>Copiar nota completa</i> la pasa al portapapeles con formato y la marca como <i>Copiada</i>. Lo que no sirve, <i>Descartar</i>.</div>
+      <div><b>Colores</b>La barrita de la izquierda: <span style="color:var(--alta)">roja</span> = prioridad alta (Selección, grandes, lesiones, sanciones, finales), <span style="color:var(--media)">amarilla</span> = media, gris = baja.</div>
+      <div><b>Verificar</b>La etiqueta amarilla avisa que hay algo para chequear: sin fecha en la fuente, poco texto, una cita traducida…</div>
+      <button class="btn sm x" type="button" id="b-ayuda-x">Entendido</button>
+    </section>
 
     <!-- BANDEJA -->
     <section id="v-bandeja" style="display:flex;flex-direction:column;gap:14px;margin-top:14px">
-      <div class="toolbar">
-        <div class="tabs" role="group" aria-label="Estado" id="tabs"></div>
-        <div class="filters">
-          <select id="f-deporte" aria-label="Deporte"><option value="">Todos los deportes</option></select>
-          <select id="f-fuente" aria-label="Fuente"><option value="">Todas las fuentes</option></select>
-          <label class="chk"><input type="checkbox" id="f-red"> Solo redactadas</label>
-          <input id="f-q" type="search" placeholder="Buscar" aria-label="Buscar">
+      <div class="bar">
+        <div class="row">
+          <div class="tabs" role="group" aria-label="Estado" id="tabs"></div>
+          <span class="sp"></span>
           <button class="btn" id="btn-pegar" type="button">+ Pegar comunicado</button>
+        </div>
+        <button class="btn sm toggle" type="button" id="b-filtros" aria-expanded="false">Ordenar y filtrar ▾</button>
+        <div class="row mas">
+          <label class="fld">Ordenar<select id="f-orden">
+            <option value="recientes">Más recientes primero</option>
+            <option value="prioridad">Más importantes primero</option>
+            <option value="viejas">Más viejas primero</option></select></label>
+          <label class="fld">Agrupar<select id="f-grupo">
+            <option value="">Sin agrupar</option>
+            <option value="tema">Por tema (club, Selección, deporte)</option>
+            <option value="deporte">Por deporte</option>
+            <option value="fuente">Por fuente</option>
+            <option value="dia">Por día</option></select></label>
+          <label class="fld">Período<select id="f-periodo">
+            <option value="6">Últimas 6 horas</option>
+            <option value="24">Últimas 24 horas</option>
+            <option value="72">Últimos 3 días</option>
+            <option value="168">Últimos 7 días</option>
+            <option value="0">Todo</option></select></label>
+          <label class="fld">Tema<select id="f-tema"><option value="">Todos</option></select></label>
+          <label class="fld">Deporte<select id="f-deporte"><option value="">Todos</option></select></label>
+          <label class="fld">Fuente<select id="f-fuente"><option value="">Todas</option></select></label>
+          <label class="fld q">Buscar<input id="f-q" type="search" placeholder="Palabra, club, jugador…"></label>
+        </div>
+        <div class="row mas">
+          <label class="chk"><input type="checkbox" id="f-red"> Solo las que ya tienen nota</label>
+          <span class="resumen-filtro" id="f-resumen"></span>
+          <button class="linkbtn" id="f-limpiar" type="button">Limpiar filtros</button>
+          <span class="sp"></span>
+          <span class="leyenda"><span><i style="background:var(--alta)"></i>Alta</span><span><i style="background:var(--media)"></i>Media</span><span><i style="background:var(--baja)"></i>Baja</span><span class="pill ia" style="font-size:10px">✦ Redactada</span><span class="flag">Verificar</span></span>
         </div>
       </div>
 
@@ -244,15 +331,18 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
 
 <script>
 (() => {
-  const ESTADOS = [{k:"nueva",label:"Nuevas"},{k:"revision",label:"En revisión"},{k:"copiada",label:"Copiadas"},{k:"descartada",label:"Descartadas"},{k:"todas",label:"Todas"}];
+  const ESTADOS = [{k:"nueva",label:"Nuevas",tip:"Llegaron y nadie las tocó todavía"},{k:"revision",label:"En revisión",tip:"Alguien las tomó para trabajar"},
+    {k:"copiada",label:"Copiadas al CMS",tip:"Ya se copiaron para publicar"},{k:"descartada",label:"Descartadas",tip:"No sirven (algunas se descartan solas: entradas, sponsors, socios)"},{k:"todas",label:"Todas",tip:"Todo junto"}];
   const ESTADO_TXT = {nueva:"Nueva", revision:"En revisión", copiada:"Copiada", descartada:"Descartada"};
   const ST_TXT = {ok:"Funciona", limitada:"Limitada", caida:"Caída", pausada:"Pausada", "sin probar":"Sin probar"};
-  const MET_TXT = {rss:"RSS", river:"API River", premier:"API Premier", web:"Web", pausada:"Pausada"};
+  const MET_TXT = {rss:"RSS", river:"API River", premier:"API Premier", wp:"API WordPress", web:"Web", pausada:"Pausada"};
   const PRIO = {alta:0, media:1, baja:2};
   const IDIOMA = {en:"inglés", it:"italiano", fr:"francés", pt:"portugués", de:"alemán"};
   const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
   const LS = "cablera_clave";
+  const PREFS = "cablera_prefs";
   const S = {clave:"", cfg:null, items:[], ultima:null, fuentes:[], view:"bandeja", estado:"nueva", deporte:"", fuente:"", red:false, q:"",
+             orden:"recientes", grupo:"", periodo:"72", tema:"", cerrados:{},
              sel:null, cache:{}, busy:{}, probes:{}, editando:null, capturando:false, mostrar:80};
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -305,6 +395,8 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
   async function cargarFuentes(){ S.fuentes = await api("/api/fuentes"); $("vn-fuentes").textContent = S.fuentes.length || ""; if(S.view==="fuentes") renderFuentes(); renderFuenteSelect(); }
   async function arrancar(){
     $("app").hidden = false;
+    cargarPrefs();
+    try{ if(!localStorage.getItem("cablera_ayuda_vista")) $("ayuda").hidden = false; }catch(e){}
     try{
       await Promise.all([cargarItems(), cargarFuentes()]);
     }catch(e){ if(e.message !== "Clave incorrecta") $("list").innerHTML = `<div class="empty"><strong>No se pudo cargar</strong>${esc(e.message)}</div>`; }
@@ -312,28 +404,96 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
   }
 
   // ───────── bandeja
-  function visibles(){
-    const q = S.q.trim().toLowerCase();
+  // ───────── temas: club, Selección, competencia o deporte
+  const CLUB_FUENTE = {boca:"Boca", river:"River", racing:"Racing", independiente:"Independiente", sanlorenzo:"San Lorenzo",
+    estudiantes:"Estudiantes", gimnasia:"Gimnasia", lanus:"Lanús", banfield:"Banfield", argentinos:"Argentinos Juniors",
+    huracan:"Huracán", newells:"Newell's", velez:"Vélez", talleres:"Talleres", copaargentina:"Copa Argentina"};
+  const TEMAS_TITULO = [
+    ["Selección", /selecci[oó]n argentina|la selecci[oó]n|scaloni|albiceleste|\bsub[ -]?(15|17|20|23)\b|seleccion(es)? juvenil/i],
+    ["Boca", /\bboca\b|xeneize/i], ["River", /\briver\b|millonario/i], ["Racing", /\bracing\b/i],
+    ["Independiente", /independiente/i], ["San Lorenzo", /san lorenzo|cuervo/i], ["Estudiantes", /estudiantes/i],
+    ["Copa Argentina", /copa argentina/i], ["Libertadores y Sudamericana", /libertadores|sudamericana|conmebol/i],
+    ["Messi e Inter Miami", /\bmessi\b|inter miami/i], ["Colapinto y F1", /colapinto|f[oó]rmula 1|\bf1\b|alpine/i],
+    ["Pumas", /\bpumas\b|pumitas/i], ["Leonas y Leones", /\bleonas\b|\bleones\b/i]];
+  const TEMA_CATEGORIA = {"Ligas del exterior":"Argentinos en el exterior", "Fútbol internacional":"Copas y fútbol internacional",
+    "Fútbol argentino":"Fútbol argentino"};
+  function temaDe(n){
+    if(n._tema) return n._tema;
+    const t = (n.nota && n.nota.titulo) || n.titulo_original || "";
+    let tema = null;
+    for(const [nombre, rx] of TEMAS_TITULO.slice(0,1)) if(rx.test(t)) tema = nombre;
+    if(!tema && CLUB_FUENTE[n.fuente_id]) tema = CLUB_FUENTE[n.fuente_id];
+    if(!tema){
+      let mejor = Infinity;
+      for(const [nombre, rx] of TEMAS_TITULO.slice(1)){ const m = t.search(rx); if(m >= 0 && m < mejor){ mejor = m; tema = nombre; } }
+    }
+    if(!tema && n.deporte && n.deporte !== "Fútbol") tema = n.deporte;
+    if(!tema) tema = TEMA_CATEGORIA[n.categoria] || (n.categoria === "Clubes" ? "Clubes" : "Otros");
+    n._tema = tema; return tema;
+  }
+  function fechaRef(n){ return ts(n) || Date.parse(n.capturado || 0) || 0; }
+  function hace(v){
+    const t = Date.parse(v || ""); if(!t) return "";
+    const m = Math.round((Date.now() - t) / 60000);
+    if(m < 1) return "recién"; if(m < 60) return `hace ${m} min`;
+    const h = Math.round(m / 60); if(h < 24) return `hace ${h} h`;
+    const d = Math.round(h / 24); return d === 1 ? "ayer" : `hace ${d} días`;
+  }
+  function filtrados(sinPeriodo){
+    const q = S.q.trim().toLowerCase(), lim = Number(S.periodo) ? Date.now() - Number(S.periodo) * 3600e3 : 0;
     return S.items
       .filter(n => S.estado === "todas" || (n.estado || "nueva") === S.estado)
+      .filter(n => sinPeriodo || !lim || fechaRef(n) >= lim || !n.publicado && Date.parse(n.capturado || 0) >= lim)
       .filter(n => !S.deporte || n.deporte === S.deporte)
       .filter(n => !S.fuente || n.fuente === S.fuente)
+      .filter(n => !S.tema || temaDe(n) === S.tema)
       .filter(n => !S.red || n.nota)
-      .filter(n => !q || [n.titulo_original, n.nota && n.nota.titulo, n.fuente, n.resumen, n.codigo].join(" ").toLowerCase().includes(q))
-      .sort((a,b) => (PRIO[a.prioridad] ?? 3) - (PRIO[b.prioridad] ?? 3) || ts(b) - ts(a));
+      .filter(n => !q || [n.titulo_original, n.titulo_fuente, n.nota && n.nota.titulo, n.fuente, n.resumen, n.codigo, temaDe(n)].join(" ").toLowerCase().includes(q));
+  }
+  function ordenar(arr){
+    const f = {
+      recientes: (a,b) => fechaRef(b) - fechaRef(a),
+      viejas: (a,b) => fechaRef(a) - fechaRef(b),
+      prioridad: (a,b) => (PRIO[a.prioridad] ?? 3) - (PRIO[b.prioridad] ?? 3) || fechaRef(b) - fechaRef(a)}[S.orden] || ((a,b) => fechaRef(b) - fechaRef(a));
+    return arr.sort(f);
+  }
+  function visibles(){ return ordenar(filtrados()); }
+  function clavesGrupo(n){
+    if(S.grupo === "tema") return temaDe(n);
+    if(S.grupo === "deporte") return n.deporte || "Sin deporte";
+    if(S.grupo === "fuente") return n.fuente || "Sin fuente";
+    if(S.grupo === "dia"){
+      const t = fechaRef(n); if(!t) return "Sin fecha";
+      const d = new Date(t), hoy = new Date(); const dd = Math.round((new Date(hoy.toDateString()) - new Date(d.toDateString())) / 864e5);
+      return dd === 0 ? "Hoy" : dd === 1 ? "Ayer" : d.toLocaleDateString("es-AR", {weekday:"long", day:"numeric", month:"long"});
+    }
+    return "";
+  }
+  function guardarPrefs(){
+    try{ localStorage.setItem(PREFS, JSON.stringify({orden:S.orden, grupo:S.grupo, periodo:S.periodo, cerrados:S.cerrados})); }catch(e){}
+  }
+  function cargarPrefs(){
+    try{ const p = JSON.parse(localStorage.getItem(PREFS) || "{}"); Object.assign(S, {orden:p.orden || S.orden, grupo:p.grupo ?? S.grupo, periodo:p.periodo || S.periodo, cerrados:p.cerrados || {}}); }catch(e){}
+    $("f-orden").value = S.orden; $("f-grupo").value = S.grupo; $("f-periodo").value = S.periodo;
+  }
+  function opciones(sel, valores, actual, todos){
+    const cnt = {}; valores.forEach(v => cnt[v] = (cnt[v] || 0) + 1);
+    const ks = Object.keys(cnt).sort((a,b) => a.localeCompare(b, "es"));
+    sel.innerHTML = `<option value="">${todos}</option>` + ks.map(k => `<option value="${esc(k)}" ${k===actual?"selected":""}>${esc(k)} (${cnt[k]})</option>`).join("");
   }
   function renderDeportes(){
-    const sel = $("f-deporte"), ds = [...new Set(S.items.map(n => n.deporte).filter(Boolean))].sort();
-    sel.innerHTML = `<option value="">Todos los deportes</option>` + ds.map(d => `<option ${d===S.deporte?"selected":""}>${esc(d)}</option>`).join("");
+    const base = S.items.filter(n => S.estado === "todas" || (n.estado || "nueva") === S.estado);
+    opciones($("f-deporte"), base.map(n => n.deporte).filter(Boolean), S.deporte, "Todos");
+    opciones($("f-tema"), base.map(temaDe), S.tema, "Todos");
     renderFuenteSelect();
   }
   function renderFuenteSelect(){
-    const sel = $("f-fuente"), fs = [...new Set(S.items.map(n => n.fuente).filter(Boolean))].sort();
-    sel.innerHTML = `<option value="">Todas las fuentes</option>` + fs.map(d => `<option ${d===S.fuente?"selected":""}>${esc(d)}</option>`).join("");
+    const base = S.items.filter(n => S.estado === "todas" || (n.estado || "nueva") === S.estado);
+    opciones($("f-fuente"), base.map(n => n.fuente).filter(Boolean), S.fuente, "Todas");
   }
   function renderTabs(){
     const cnt = k => k === "todas" ? S.items.length : S.items.filter(n => (n.estado||"nueva") === k).length;
-    $("tabs").innerHTML = ESTADOS.map(e => `<button type="button" data-k="${e.k}" aria-pressed="${S.estado===e.k}">${e.label}<span class="n">${cnt(e.k)}</span></button>`).join("");
+    $("tabs").innerHTML = ESTADOS.map(e => `<button type="button" data-k="${e.k}" title="${e.tip}" aria-pressed="${S.estado===e.k}">${e.label}<span class="n">${cnt(e.k)}</span></button>`).join("");
     $("vn-bandeja").textContent = cnt("nueva") || "";
   }
   function renderTicker(){
@@ -342,18 +502,37 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
     $("ticker").innerHTML = `<span><span class="live"></span>Última captura <b>${u ? esc(fecha(u.fecha)) : "—"}</b></span><span><b>${nuevas}</b> nuevas</span><span><b>${red}</b> redactadas</span>` +
       `<button class="btn sm" id="btn-capturar" type="button" ${S.capturando?"disabled":""}>${S.capturando?'<span class="spin"></span> Capturando…':"↻ Capturar ahora"}</button>`;
   }
-  function renderList(){
-    const list = $("list"), vs = visibles();
-    if(!S.items.length){
-      list.innerHTML = `<div class="empty"><strong>La bandeja está vacía</strong>Tocá “↻ Capturar ahora” para leer las fuentes, o pegá un comunicado.</div>`; return;
-    }
-    if(!vs.length){ list.innerHTML = `<div class="empty"><strong>Nada por acá</strong>No hay comunicados con estos filtros. Probá con “Todas”.</div>`; return; }
-    list.innerHTML = vs.slice(0, S.mostrar).map(n => `
+  function itemHtml(n){
+    const cuando = n.publicado ? `${esc(fecha(n.publicado))} · ${esc(hace(n.publicado))}` : `sin fecha · capturado ${esc(hace(n.capturado))}`;
+    return `
       <button type="button" class="item" data-id="${esc(n.id)}" data-p="${esc(n.prioridad)}" data-estado="${esc(n.estado||"nueva")}" aria-current="${S.sel===n.id}">
-        <div class="meta"><span class="pill">${esc(n.deporte)}</span>${n.nota?`<span class="pill ia">✦ Redactada</span>`:""}<span>${esc(n.codigo||"")}</span><span>${esc(fecha(n.publicado)) || "sin fecha"}</span>${(n.estado&&n.estado!=="nueva")?`<span class="state" data-s="${esc(n.estado)}">${ESTADO_TXT[n.estado]||""}</span>`:""}${(n.aviso||(n.nota&&n.nota.alerta))?`<span class="flag">Verificar</span>`:""}</div>
+        <div class="meta"><span class="pill">${esc(n.deporte)}</span>${S.grupo!=="tema"?`<span class="tema">${esc(temaDe(n))}</span>`:""}${n.nota?`<span class="pill ia">✦ Redactada</span>`:""}<span>${cuando}</span>${(n.estado&&n.estado!=="nueva"&&S.estado==="todas")?`<span class="state" data-s="${esc(n.estado)}">${ESTADO_TXT[n.estado]||""}</span>`:""}${(n.aviso||(n.nota&&n.nota.alerta))?`<span class="flag">Verificar</span>`:""}</div>
         <h3>${esc(n.nota ? n.nota.titulo : n.titulo_original)}</h3>
         <div class="src">${esc(n.fuente)}${n.titulo_fuente?` · traducido del ${IDIOMA[n.idioma]||"original"}`:""}${n.motivo?` · ${esc(n.motivo)}`:""}</div>
-      </button>`).join("") + (vs.length > S.mostrar ? `<button class="btn more" id="b-more" type="button">Ver ${vs.length - S.mostrar} más</button>` : "");
+      </button>`;
+  }
+  function renderList(){
+    const list = $("list"), vs = visibles();
+    const total = filtrados(true).length;
+    $("f-resumen").innerHTML = vs.length ? `Mostrando <b>${vs.length}</b>${total > vs.length ? ` de ${total} (el resto queda fuera del período)` : ""}` : "";
+    if(!S.items.length){
+      list.innerHTML = `<div class="empty"><strong>La bandeja está vacía</strong>Tocá “↻ Capturar ahora” arriba a la derecha para leer las fuentes, o pegá un comunicado.</div>`; return;
+    }
+    if(!vs.length){
+      list.innerHTML = `<div class="empty"><strong>Nada por acá</strong>${total ? `Hay ${total} con estos filtros pero son más viejos: cambiá el <b>Período</b> a “Todo”.` : `No hay comunicados con estos filtros. Probá <b>Limpiar filtros</b> o el estado “Todas”.`}</div>`; return;
+    }
+    if(!S.grupo){
+      list.innerHTML = vs.slice(0, S.mostrar).map(itemHtml).join("") + (vs.length > S.mostrar ? `<button class="btn more" id="b-more" type="button">Ver ${vs.length - S.mostrar} más</button>` : "");
+      return;
+    }
+    const grupos = new Map();
+    vs.forEach(n => { const k = clavesGrupo(n); if(!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(n); });
+    let orden = [...grupos.keys()];
+    if(S.grupo !== "dia") orden.sort((a,b) => grupos.get(b).length - grupos.get(a).length || a.localeCompare(b, "es"));
+    list.innerHTML = orden.map(k => {
+      const ns = grupos.get(k), altas = ns.filter(n => n.prioridad === "alta").length, id = S.grupo + ":" + k;
+      return `<details class="grupo" data-g="${esc(id)}" ${S.cerrados[id] ? "" : "open"}><summary>${esc(k)} <span class="n">${ns.length}</span>${altas?`<span class="alta">${altas} alta${altas>1?"s":""}</span>`:""}</summary><div class="items">${ns.slice(0, 40).map(itemHtml).join("")}${ns.length > 40 ? `<div class="resumen-filtro">…y ${ns.length - 40} más: filtrá por este grupo para verlas todas.</div>` : ""}</div></details>`;
+    }).join("");
   }
 
   function opcionesMotor(){
@@ -550,7 +729,7 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
       <div class="grid2">
         <label>Nombre<input id="ff-nombre" value="${esc(f.nombre)}"></label>
         <label>Categoría<input id="ff-categoria" value="${esc(f.categoria)}" list="ff-cats"></label>
-        <label>Método<select id="ff-metodo">${opt(f.metodo,[["web","Web (scraping)"],["rss","RSS"],["river","API de River"],["premier","API de la Premier"],["pausada","Pausada (no se lee)"]])}</select></label>
+        <label>Método<select id="ff-metodo">${opt(f.metodo,[["web","Web (scraping)"],["rss","RSS"],["river","API de River"],["premier","API de la Premier"],["wp","API de WordPress"],["pausada","Pausada (no se lee)"]])}</select></label>
         <label>Deporte por defecto<input id="ff-deporte" value="${esc(f.deporte)}"></label>
       </div>
       <label>Dirección (del listado de noticias o del feed RSS)<input id="ff-url" value="${esc(f.url)}" placeholder="https://"></label>
@@ -560,6 +739,7 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
         <label>Idioma<select id="ff-idioma">${opt(f.idioma||"es",[["es","Español"],["en","Inglés"],["it","Italiano"],["fr","Francés"],["pt","Portugués"]])}</select></label>
         <label>Orden<input id="ff-orden" type="number" value="${esc(f.orden)}"></label>
       </div>
+      <label>Link público (solo API de WordPress, opcional) <span class="hint">Ej.: <code>https://cahuracan.com/noticias/{slug}</code></span><input id="ff-enlace" value="${esc(f.enlace||"")}"></label>
       <label>Detalle para los editores<input id="ff-detalle" value="${esc(f.detalle)}"></label>
       <datalist id="ff-cats">${[...new Set(S.fuentes.map(x=>x.categoria))].map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
       <div class="foot"><button class="btn primary" type="button" id="ff-save">Guardar</button><button class="btn" type="button" id="ff-cancel">Cancelar</button>
@@ -571,7 +751,7 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
     const f = S.editando === "__nueva" ? {} : S.fuentes.find(x => x.id === S.editando) || {};
     const body = {id:f.id||"", nombre:$("ff-nombre").value.trim(), categoria:$("ff-categoria").value.trim()||"Otras", metodo:$("ff-metodo").value,
       deporte:$("ff-deporte").value.trim()||"Fútbol", url:$("ff-url").value.trim(), patron:$("ff-patron").value.trim(), filtro:$("ff-filtro").value.trim(),
-      idioma:$("ff-idioma").value, orden:Number($("ff-orden").value)||500, detalle:$("ff-detalle").value.trim()};
+      idioma:$("ff-idioma").value, orden:Number($("ff-orden").value)||500, detalle:$("ff-detalle").value.trim(), enlace:$("ff-enlace").value.trim()};
     if(!body.nombre || !/^https?:\/\//.test(body.url)){ $("ff-err").textContent = "Completá el nombre y una dirección que empiece con https://"; return; }
     try{ const g = await api("/api/fuentes", {method:"POST", body:JSON.stringify(body)}); S.editando = null; await cargarFuentes(); probar(g.id); }
     catch(e){ $("ff-err").textContent = e.message; }
@@ -610,7 +790,7 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
   // ───────── vistas y eventos
   function setView(v){
     S.view = v;
-    document.querySelectorAll("#views button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
+    document.querySelectorAll("#views .tab").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
     $("v-bandeja").hidden = v !== "bandeja"; $("v-fuentes").hidden = v !== "fuentes"; $("v-actividad").hidden = v !== "actividad";
     $("v-bandeja").style.display = v === "bandeja" ? "flex" : "none";
     $("v-actividad").style.display = v === "actividad" ? "flex" : "none";
@@ -620,8 +800,18 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
 
   document.addEventListener("click", async ev => {
     const t = ev.target.closest("button"); if(!t) return;
-    if(t.closest("#views")){ setView(t.dataset.view); return; }
-    if(t.closest("#tabs")){ S.estado = t.dataset.k; S.sel = null; S.mostrar = 80; renderBandeja(); return; }
+    if(t.id === "b-ayuda" || t.id === "b-ayuda-x"){
+      const a = $("ayuda"); a.hidden = t.id === "b-ayuda-x" ? true : !a.hidden; $("b-ayuda").setAttribute("aria-expanded", String(!a.hidden));
+      try{ localStorage.setItem("cablera_ayuda_vista", "1"); }catch(e){}
+      return;
+    }
+    if(t.closest("#views") && t.dataset.view){ setView(t.dataset.view); return; }
+    if(t.id === "b-filtros"){ const b = t.closest(".bar"); b.classList.toggle("abierta"); t.setAttribute("aria-expanded", String(b.classList.contains("abierta"))); t.textContent = b.classList.contains("abierta") ? "Ocultar filtros ▴" : "Ordenar y filtrar ▾"; return; }
+    if(t.id === "f-limpiar"){
+      Object.assign(S, {deporte:"", fuente:"", tema:"", q:"", red:false, periodo:"0", mostrar:80});
+      $("f-q").value = ""; $("f-red").checked = false; $("f-periodo").value = "0"; guardarPrefs(); renderDeportes(); renderList(); return;
+    }
+    if(t.closest("#tabs")){ S.estado = t.dataset.k; S.sel = null; S.mostrar = 80; renderDeportes(); renderBandeja(); return; }
     if(t.classList.contains("item")){ abrir(t.dataset.id); return; }
     if(t.id === "b-more"){ S.mostrar += 80; renderList(); return; }
     if(t.id === "btn-capturar"){ capturarAhora(); return; }
@@ -655,6 +845,14 @@ details.orig-box summary{cursor:pointer;font-weight:600;color:var(--muted)}
     if(t.id === "b-salir"){ try{ localStorage.removeItem(LS); }catch(e){} S.clave = ""; mostrarLogin("Clave olvidada en este dispositivo."); return; }
   });
   $("f-deporte").addEventListener("change", e => { S.deporte = e.target.value; renderList(); });
+  $("f-tema").addEventListener("change", e => { S.tema = e.target.value; renderList(); });
+  $("f-orden").addEventListener("change", e => { S.orden = e.target.value; guardarPrefs(); renderList(); });
+  $("f-grupo").addEventListener("change", e => { S.grupo = e.target.value; guardarPrefs(); renderList(); });
+  $("f-periodo").addEventListener("change", e => { S.periodo = e.target.value; S.mostrar = 80; guardarPrefs(); renderList(); });
+  $("list").addEventListener("toggle", e => {
+    const d = e.target; if(!d.matches || !d.matches("details.grupo")) return;
+    if(d.open) delete S.cerrados[d.dataset.g]; else S.cerrados[d.dataset.g] = 1; guardarPrefs();
+  }, true);
   $("f-fuente").addEventListener("change", e => { S.fuente = e.target.value; renderList(); });
   $("f-red").addEventListener("change", e => { S.red = e.target.checked; renderList(); });
   $("f-q").addEventListener("input", e => { S.q = e.target.value; renderList(); });

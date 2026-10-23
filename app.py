@@ -26,9 +26,9 @@ import redaccion
 from fuentes_base import FUENTES_BASE
 from ui import INDEX_HTML
 
-VERSION = "1.2"
+VERSION = "1.3"
 PRESUPUESTO_CAPTURA = int(os.environ.get("CABLERA_PRESUPUESTO_SEG", "200"))
-DIAS_BANDEJA = 10            # la bandeja muestra lo capturado en los últimos 10 días
+DIAS_BANDEJA = 14            # la bandeja muestra lo capturado en los últimos 10 días
 DIAS_VISTOS = 20             # se recuerda qué links ya se vieron durante 20 días
 
 app = FastAPI(title="Cablera Deportiva")
@@ -80,7 +80,8 @@ def _estado_tras(f, ok, mensaje, resumen=None):
 
 # ─────────────────────────── items ───────────────────────────
 ABREV = {"Fútbol": "FUT", "Básquet": "BAS", "Rugby": "RUG", "Automovilismo": "AUT", "Tenis": "TEN",
-         "Hockey": "HOC", "Futsal": "FSA", "Vóley": "VOL", "Polideportivo": "POL"}
+         "Hockey": "HOC", "Futsal": "FSA", "Vóley": "VOL", "Polideportivo": "POL",
+         "Handball": "HAN", "Atletismo": "ATL", "Natación": "NAT", "Golf": "GOL", "Polo": "POL"}
 
 
 def _codigos(nuevos, existentes):
@@ -159,7 +160,9 @@ def _vistos():
 def capturar(ids=None, origen="manual"):
     t0 = time.time()
     fs = fuentes()
-    elegidas = [f for f in sorted(fs.values(), key=lambda x: x.get("orden", 999))
+    # Primero las fuentes que hace más tiempo no se leen: si el tiempo no alcanza, las que quedan afuera
+    # pasan primeras en la próxima corrida.
+    elegidas = [f for f in sorted(fs.values(), key=lambda x: ((x.get("ultimo") or {}).get("fecha", ""), x.get("orden", 999)))
                 if f.get("metodo") != "pausada" and (not ids or f["id"] in ids)]
     vistos = _vistos()
     resultados = {}
@@ -171,7 +174,7 @@ def capturar(ids=None, origen="manual"):
         except Exception as e:
             return f["id"], [], {}, None, str(e)[:200] or e.__class__.__name__
 
-    ex = ThreadPoolExecutor(max_workers=6)
+    ex = ThreadPoolExecutor(max_workers=8)
     futuros = [ex.submit(una, f) for f in elegidas]
     hechos, pendientes = wait(futuros, timeout=PRESUPUESTO_CAPTURA)
     ex.shutdown(wait=False, cancel_futures=True)
@@ -232,6 +235,7 @@ class Fuente(BaseModel):
     patron: str = ""
     filtro: str = ""
     idioma: str = "es"
+    enlace: str = ""
     detalle: str = ""
     orden: int = 500
 
@@ -356,7 +360,7 @@ def listar_fuentes(x_cablera_clave: str = Header(default="")):
 @app.post("/api/fuentes")
 def guardar_fuente(body: Fuente, x_cablera_clave: str = Header(default="")):
     autorizar(x_cablera_clave)
-    if body.metodo not in ("rss", "river", "web", "premier", "pausada"):
+    if body.metodo not in ("rss", "river", "web", "premier", "wp", "pausada"):
         raise HTTPException(400, "Método inválido.")
     for campo in ("patron", "filtro"):
         try:

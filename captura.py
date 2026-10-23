@@ -18,9 +18,9 @@ import requests
 from bs4 import BeautifulSoup
 
 ART = timezone(timedelta(hours=-3))
-MAX_HORAS = 36            # solo entran comunicados publicados en las últimas 36 horas
-MAX_POR_FUENTE = 10       # notas nuevas que se leen por fuente y por corrida
-SIN_FECHA_PRIMERA_VEZ = 3 # la primera vez que se lee una fuente, cuántas notas sin fecha entran
+MAX_HORAS = 72            # solo entran comunicados publicados en las últimas 72 horas
+MAX_POR_FUENTE = 25       # notas nuevas que se leen por fuente y por corrida
+SIN_FECHA_PRIMERA_VEZ = 6 # la primera vez que se lee una fuente, cuántas notas sin fecha entran
 TIMEOUT = 20
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
@@ -98,6 +98,27 @@ def parse_fecha(t):
         return datetime(y, mo, d, 12, 0, tzinfo=ART)   # sin hora: se toma el mediodía
     except (ValueError, KeyError):
         return None
+
+
+_ABR = "ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|SET|OCT|NOV|DIC|JAN|APR|AUG|DEC"
+# "23OCT" (en mayúsculas, puede venir pegado al título) o "22 oct" / "22 oct." (separado)
+RE_CORTA = [re.compile(rf"(?<!\d)(\d{{1,2}})\s?({_ABR})(?![a-z])"),
+            re.compile(rf"(?<!\d)(\d{{1,2}})\s+({_ABR.lower()})\.?(?![a-záéíóúñ])")]
+
+
+def fecha_corta(t):
+    """Fechas sin año de los listados ("23OCT", "22 oct"): se asume el año actual (o el anterior si quedaría en el futuro)."""
+    m = RE_CORTA[0].search(t or "") or RE_CORTA[1].search(t or "")
+    if not m:
+        return None
+    hoy = ahora()
+    try:
+        f = datetime(hoy.year, MESES[m.group(2).lower()], int(m.group(1)), 12, 0, tzinfo=ART)
+    except (ValueError, KeyError):
+        return None
+    if f > hoy + timedelta(days=2):
+        f = f.replace(year=hoy.year - 1)
+    return f
 
 
 def fecha_de_url(url):
@@ -219,7 +240,13 @@ def leer_articulo(url):
         t = soup.find("time", attrs={"datetime": True})
         fecha = parse_fecha(t["datetime"]) if t else None
     h1 = soup.find("h1")
-    titulo = h1.get_text(" ", strip=True) if h1 and len(h1.get_text(strip=True)) > 10 else _meta(soup, "og:title", "twitter:title") or (soup.title.string if soup.title else "")
+    titulo, fuerte = "", True
+    if h1 and len(h1.get_text(strip=True)) > 10:
+        titulo = h1.get_text(" ", strip=True)
+    else:
+        titulo = _meta(soup, "og:title", "twitter:title")
+    if not titulo:   # solo el <title> de la página: suele ser el nombre del sitio
+        titulo, fuerte = (soup.title.string if soup.title and soup.title.string else ""), False
     descripcion = _meta(soup, "og:description", "description", "twitter:description")
     for x in soup(_BASURA):
         x.decompose()
@@ -230,8 +257,10 @@ def leer_articulo(url):
         # Último recurso: la primera fecha completa (con año) de la página, cerca del título
         zona = soup.find("article") or soup.body or soup
         fecha_txt = parse_fecha(zona.get_text(" ", strip=True)[:4000])
-        return {"titulo": limpiar_titulo(titulo), "fecha": fecha_txt, "fecha_debil": bool(fecha_txt), "texto": texto[:15000]}
-    return {"titulo": limpiar_titulo(titulo), "fecha": fecha, "fecha_debil": False, "texto": texto[:15000]}
+        if fecha_txt and fecha_txt < ahora() - timedelta(days=30):
+            fecha_txt = None   # una fecha vieja en el texto suele ser de otra cosa (pie de página, historia): mejor sin fecha
+        return {"titulo": limpiar_titulo(titulo), "titulo_fuerte": fuerte, "fecha": fecha_txt, "fecha_debil": bool(fecha_txt), "texto": texto[:15000]}
+    return {"titulo": limpiar_titulo(titulo), "titulo_fuerte": fuerte, "fecha": fecha, "fecha_debil": False, "texto": texto[:15000]}
 
 
 def leer_pdf(contenido):
@@ -334,6 +363,22 @@ def leer_premier(fuente):
     return out
 
 
+def leer_wp(fuente):
+    """API de WordPress (/wp-json/wp/v2/posts): sitios que arman la página con JavaScript pero publican en WordPress.
+    Si la fuente tiene "enlace" (ej. https://cahuracan.com/noticias/{slug}), se usa para el link público."""
+    j = obtener(fuente["url"]).json()
+    out = []
+    for p in j[:30] if isinstance(j, list) else []:
+        link = p.get("link") or ""
+        if fuente.get("enlace") and p.get("slug"):
+            link = fuente["enlace"].replace("{slug}", p["slug"])
+        titulo = limpiar(BeautifulSoup((p.get("title") or {}).get("rendered", ""), "lxml").get_text(" "))
+        cont = (p.get("content") or {}).get("rendered", "") or (p.get("excerpt") or {}).get("rendered", "")
+        out.append({"url": link, "titulo": titulo, "fecha": parse_fecha(p.get("date")),
+                    "texto": html_a_texto(cont)})
+    return out
+
+
 def _titulo_pdf(href, texto_a, fuente):
     if len(texto_a) >= 15 and not re.search(r"descarg|download", texto_a, re.I):
         return texto_a
@@ -357,7 +402,7 @@ def leer_web(fuente):
         if alt and alt.get("href"):
             return leer_rss({**fuente, "url": urljoin(r.url, alt["href"])})
     rx = re.compile(patron, re.I) if patron else None
-    out, vistos = [], set()
+    out, vistos = [], {}
     for a in soup.find_all("a", href=True):
         href = urljoin(r.url, a["href"].strip())
         if href.startswith(("mailto:", "javascript:")):
@@ -371,20 +416,30 @@ def leer_web(fuente):
         elif len(texto_a) < 25 or urlparse(href).path.count("/") < 2:
             continue
         clave = normalizar_url(href)
-        if clave in vistos or clave == normalizar_url(r.url):
+        if clave == normalizar_url(r.url):
             continue
-        vistos.add(clave)
+        if clave in vistos:
+            # El mismo link aparece varias veces (foto, título, "Leer más"): se queda el texto más largo
+            previo = vistos[clave]
+            t2 = re.sub(r"(leer m[aá]s|ver m[aá]s|read more)\s*$", "", texto_a, flags=re.I).strip()
+            if len(t2) > len(previo["titulo"]) and not href.lower().split("?")[0].endswith(".pdf"):
+                previo["titulo"] = t2
+            if not previo["fecha"]:
+                previo["fecha"] = parse_fecha(texto_a) or fecha_corta(texto_a)
+            continue
         # Fecha visible en el listado: en el link o en su tarjeta
         fecha = parse_fecha(texto_a)
         if not fecha and a.parent is not None:
             t = a.parent.get_text(" ", strip=True)
             if len(t) < 400:
                 fecha = parse_fecha(t)
-        fecha = fecha_de_url(href) or fecha
+        fecha = fecha_de_url(href) or fecha or fecha_corta(texto_a)
         titulo = re.sub(r"(leer m[aá]s|ver m[aá]s|read more)\s*$", "", texto_a, flags=re.I).strip()
         if href.lower().split("?")[0].endswith(".pdf"):
             titulo = _titulo_pdf(href, titulo, fuente)
-        out.append({"url": href, "titulo": titulo, "fecha": fecha, "texto": ""})
+        item = {"url": href, "titulo": titulo, "fecha": fecha, "texto": ""}
+        vistos[clave] = item
+        out.append(item)
         if len(out) >= 40:
             break
     if not out:
@@ -392,7 +447,7 @@ def leer_web(fuente):
     return out
 
 
-LECTORES = {"rss": leer_rss, "river": leer_river, "web": leer_web, "premier": leer_premier}
+LECTORES = {"rss": leer_rss, "river": leer_river, "web": leer_web, "premier": leer_premier, "wp": leer_wp}
 
 
 # ─────────────────────────── clasificación (sin IA) ───────────────────────────
@@ -411,7 +466,8 @@ DESCARTE = [(r"venta de entradas|entradas (para|ante|disponibles)|sac[aá] tu en
             (r"\bvisitas guiadas|museo|colonia de vacaciones", "institucional menor")]
 DEPORTES = [("Básquet", r"b[aá]squet|basket|\bnba\b|liga nacional"), ("Rugby", r"rugby|pumas|\buar\b"),
             ("Hockey", r"hockey|leonas"), ("Tenis", r"tenis|atp|wta"), ("Futsal", r"futsal|f[uú]tbol de sal[oó]n"),
-            ("Vóley", r"v[oó]ley"), ("Automovilismo", r"f[oó]rmula 1|\bf1\b|colapinto|turismo carretera|\btc\b")]
+            ("Vóley", r"v[oó]ley"), ("Handball", r"handball|balonmano"), ("Atletismo", r"atletismo"),
+            ("Natación", r"nataci[oó]n"), ("Automovilismo", r"f[oó]rmula 1|\bf1\b|colapinto|turismo carretera|\btc\b")]
 
 
 def clasificar(it, fuente):
@@ -452,7 +508,7 @@ def capturar_fuente(fuente, vistos: dict, prueba=False, limite=MAX_POR_FUENTE):
     ya_leida = any(v.get("f") == fuente["id"] for v in vistos.values())
     filtro = re.compile(fuente["filtro"], re.I) if fuente.get("filtro") else None
     if filtro and not prueba:
-        limite = max(limite, 25)   # con filtro se descartan muchas: se leen más por corrida
+        limite = max(limite, 35)   # con filtro se descartan muchas: se leen más por corrida
     limite_tiempo = ahora() - timedelta(hours=MAX_HORAS)
 
     nuevos_vistos, pendientes = {}, []
@@ -478,8 +534,9 @@ def capturar_fuente(fuente, vistos: dict, prueba=False, limite=MAX_POR_FUENTE):
             if d.get("error"):
                 c["error"] = d["error"]
             c["texto"] = d.get("texto") or c.get("texto") or c.get("resumen", "")
-            if not c.get("titulo") or len(c["titulo"]) < 12 or (met == "web" and not c["url"].lower().split("?")[0].endswith(".pdf")):
-                c["titulo"] = d.get("titulo") or c.get("titulo", "")
+            es_pdf = c["url"].lower().split("?")[0].endswith(".pdf")
+            if d.get("titulo") and not es_pdf and (len(c.get("titulo") or "") < 12 or (met == "web" and d.get("titulo_fuerte", True))):
+                c["titulo"] = d["titulo"]
             if not c.get("fecha") and d.get("fecha"):
                 c["fecha"], c["fecha_debil"] = d["fecha"], d.get("fecha_debil", False)
         except Exception as e:
@@ -488,7 +545,7 @@ def capturar_fuente(fuente, vistos: dict, prueba=False, limite=MAX_POR_FUENTE):
                 c["error"] = f"no se pudo leer la nota ({str(e)[:80]})"
         return c
 
-    with ThreadPoolExecutor(max_workers=4) as ex:
+    with ThreadPoolExecutor(max_workers=6) as ex:
         completos = list(ex.map(completar, pendientes))
 
     items, sin_fecha, errores = [], 0, 0

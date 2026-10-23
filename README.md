@@ -1,14 +1,16 @@
-# Cablera Deportiva · v1.2
+# Cablera Deportiva · v1.3
 
 Comunicados oficiales de federaciones, ligas y clubes, capturados solos y listos para convertirse en notas estilo Olé.
 
 ## Cómo funciona
 
-1. **Captura (sin IA, sin costo).** Cada 2 horas (GitHub Actions) o con **↻ Capturar ahora**, la app lee las fuentes oficiales: feeds RSS, la API de River y las webs (scraping). Trae título, fecha, texto completo y link de cada comunicado nuevo de las últimas 36 horas, y nunca repite uno ya visto.
+1. **Captura (sin IA, sin costo).** Cada 2 horas (GitHub Actions) o con **↻ Capturar ahora**, la app lee las fuentes oficiales: feeds RSS, APIs (River, Premier, WordPress) y las webs (scraping). Trae título, fecha, texto completo y link de hasta 25 comunicados nuevos por fuente de las últimas 72 horas, y nunca repite uno ya visto. Si el tiempo no alcanza para todas, las que quedaron afuera se leen primero en la próxima corrida.
 2. **Orden por reglas.** Prioridad alta si el título habla de Selección, Messi, Boca, River, Racing, Independiente, San Lorenzo, renuncias, sanciones, lesiones, finales, convocatorias o Colapinto. Venta de entradas, socios, sponsors, merchandising y efemérides van solos a **Descartadas** (se pueden recuperar).
 3. **Títulos en español.** Los títulos de fuentes en inglés o italiano (UEFA, Premier, Serie A, MLS, ATP, WTA, F1, FIA…) se traducen solos al capturarlos, todos juntos en un único pedido corto a la IA por corrida (motores gratuitos primero; con Claude Haiku cuesta una fracción de centavo). El título original queda visible en la nota. Si la IA no responde, quedan en el idioma original y se traducen al redactar.
 4. **IA a demanda.** En la bandeja ves los títulos originales. Cuando uno te sirve, **✦ Redactar nota**: la IA escribe título, dos alternativos, bajada, cuerpo, etiquetas y lo que hay que chequear. Usa los motores gratuitos primero (Gemini, Mistral, Groq, OpenRouter) y Claude de respaldo. La nota queda guardada: no se paga dos veces. **↻ Otra versión** pide una nueva.
 5. **Al CMS.** **Copiar nota completa** (con formato) la marca como *Copiada*. Estados: Nuevas, En revisión, Copiadas, Descartadas.
+
+**La bandeja:** arriba, tres secciones explicadas (Bandeja, Fuentes, Actividad) y **? Cómo se usa**. Se puede **ordenar** (más recientes, más importantes, más viejas), **agrupar** (por tema —club, Selección, Pumas, Colapinto, argentinos en el exterior…—, por deporte, por fuente o por día, con grupos plegables), elegir el **período** (6 h, 24 h, 3 días, 7 días, todo) y filtrar por tema, deporte y fuente, cada uno con su cantidad. La app recuerda cómo la dejaste. En el celular, los filtros se abren con **Ordenar y filtrar**.
 
 También: **+ Pegar comunicado** (lo que llega por mail o WhatsApp), filtros por deporte y fuente, búsqueda, y la pestaña **Fuentes** para agregar, editar, pausar y **Probar** fuentes sin tocar código.
 
@@ -20,9 +22,10 @@ También: **+ Pegar comunicado** (lo que llega por mail o WhatsApp), filtros por
 | Web | sitios sin feed (AFA, Boca, Independiente, San Lorenzo, Liga Nacional…) | la página de listado y el **patrón**: un pedazo de la dirección que tienen todas las notas (ej. `/noticias/`) |
 | API River | riverplate.com | nada |
 | API Premier | premierleague.com (reúne los comunicados de los clubes) | nada |
+| API WordPress | sitios armados con JavaScript sobre WordPress (Huracán) | la dirección `/wp-json/wp/v2/posts` y, opcional, el link público con `{slug}` |
 | Pausada | sitios que necesitan navegador (FIFA, Ligue 1, AAT, Super Rugby Americas) | — |
 
-**35 fuentes de arranque**, revisadas una por una el 23/10/2026 con un navegador: fútbol argentino (AFA, Tribunal de Disciplina en PDF, LPF), clubes (Boca, River, Racing, Independiente, San Lorenzo), CONMEBOL y UEFA, ligas del exterior (Premier, LaLiga, Serie A, MLS) filtradas por argentinos, tenis (ATP, WTA, Copa Davis), motor (F1, FIA, ACTC), rugby (UAR, World Rugby), básquet (Liga Nacional, FIBA, CABB), vóley (FeVA), hockey (CAH) y el Comité Olímpico Argentino. Las que no se pueden leer sin navegador quedan pausadas, con el motivo en la pestaña Fuentes. Si en el futuro se suman fuentes nuevas a `fuentes_base.py`, aparecen solas al actualizar (salvo las que hayas borrado).
+**50 fuentes de arranque (43 activas)**, revisadas una por una el 23/10/2026 con un navegador: fútbol argentino (AFA, Tribunal de Disciplina en PDF, LPF, Copa Argentina), clubes (Boca, River, Racing, Independiente, San Lorenzo, Estudiantes, Gimnasia, Lanús, Banfield, Argentinos, Huracán, Newell's), CONMEBOL y UEFA, ligas del exterior (Premier, LaLiga, Serie A, MLS) filtradas por argentinos, tenis (ATP, WTA, Copa Davis), motor (F1, FIA, ACTC), rugby (UAR, World Rugby), básquet (Liga Nacional, FIBA, CABB), vóley (FeVA), hockey (CAH), handball, atletismo, natación, golf, polo y el Comité Olímpico Argentino. Pausadas, con el motivo en la pestaña Fuentes: FIFA, Ligue 1, Bundesliga, AAT, Super Rugby Americas, Vélez (sitio en mantenimiento) y Talleres (control anti-robots). Rosario Central no se pudo abrir. Si en el futuro se suman fuentes nuevas a `fuentes_base.py`, aparecen solas al actualizar (salvo las que hayas borrado).
 
 El **filtro** deja pasar solo notas que mencionen ciertas palabras (separadas por `|`). Las ligas de afuera vienen filtradas por argentinos.
 

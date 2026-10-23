@@ -10,6 +10,8 @@ Campos de cada fuente:
   metodo     rss | river | web | pausada
                rss    feed RSS o Atom (url = dirección del feed)
                river  API JSON del sitio de River
+               premier  API de contenidos de la Premier League
+               wp     API de WordPress (/wp-json/wp/v2/posts); "enlace" arma el link público con {slug}
                web    página de listado + lectura de cada nota (scraping)
                pausada  no se lee
   url        dirección del feed o del listado
@@ -62,7 +64,33 @@ FUENTES_BASE = [
     dict(id="sanlorenzo", nombre="San Lorenzo", categoria="Clubes", deporte="Fútbol",
          metodo="web", url="https://www.sanlorenzo.com.ar/", patron=r"/noticias/\d{10}_",
          detalle="Muchas novedades solo en video (conferencias), que no se capturan. Verificada el 23/10."),
+    dict(id="estudiantes", nombre="Estudiantes de La Plata", categoria="Clubes", deporte="Fútbol",
+         metodo="rss", url="https://estudiantesdelaplata.com/feed/", detalle="Feed con texto completo. Verificada el 23/10."),
+    dict(id="gimnasia", nombre="Gimnasia y Esgrima La Plata", categoria="Clubes", deporte="Fútbol",
+         metodo="rss", url="https://www.gimnasia.org.ar/feed/", detalle="Feed con texto completo. Verificada el 23/10."),
+    dict(id="lanus", nombre="Lanús", categoria="Clubes", deporte="Fútbol",
+         metodo="rss", url="https://clublanus.com/feed/", detalle="Feed con texto completo. Verificada el 23/10."),
+    dict(id="banfield", nombre="Banfield", categoria="Clubes", deporte="Fútbol",
+         metodo="rss", url="https://clubabanfield.org/feed/", detalle="Feed sin texto completo: se lee cada nota. Verificada el 23/10."),
+    dict(id="argentinos", nombre="Argentinos Juniors", categoria="Clubes", deporte="Fútbol",
+         metodo="rss", url="https://argentinosjuniors.com.ar/feed/", detalle="Feed con texto completo. Verificada el 23/10."),
+    dict(id="huracan", nombre="Huracán", categoria="Clubes", deporte="Fútbol",
+         metodo="wp", url="https://admin.cahuracan.com/wp-json/wp/v2/posts?per_page=20&_fields=date,link,slug,title,content",
+         enlace="https://cahuracan.com/noticias/{slug}",
+         detalle="El sitio se arma con JavaScript; se lee la API de WordPress que tiene detrás. Verificada el 23/10."),
+    dict(id="newells", nombre="Newell's Old Boys", categoria="Clubes", deporte="Fútbol",
+         metodo="web", url="https://www.newellsoldboys.com.ar/noticias", patron=r"/noticias/[a-z0-9-]{8,}",
+         detalle="La fecha sale del listado (\"23OCT\", sin año). Verificada el 23/10."),
+    dict(id="velez", nombre="Vélez Sarsfield", categoria="Clubes", deporte="Fútbol",
+         metodo="pausada", url="https://www.velez.com.ar",
+         detalle="El 23/10 el sitio estaba en mantenimiento. Probala más adelante (con patrón /noticias/ o su RSS)."),
+    dict(id="talleres", nombre="Talleres", categoria="Clubes", deporte="Fútbol",
+         metodo="pausada", url="https://www.clubtalleres.com.ar",
+         detalle="Tiene un control anti-robots (\"Checking your browser\"): no se puede leer desde un servidor."),
     # ── Fútbol internacional
+    dict(id="copaargentina", nombre="Copa Argentina", categoria="Fútbol argentino", deporte="Fútbol",
+         metodo="web", url="https://www.copaargentina.org/", patron=r"/es/news/\d+_",
+         detalle="Las notas no muestran fecha: entran con aviso Verificar. Verificada el 23/10."),
     dict(id="conmebol", nombre="CONMEBOL", categoria="Fútbol internacional", deporte="Fútbol",
          metodo="rss", url="https://www.conmebol.com/feed/",
          detalle="Feed sin texto completo: se lee cada nota. Verificada el 23/10."),
@@ -138,6 +166,17 @@ FUENTES_BASE = [
     dict(id="cah", nombre="CAH · Hockey", categoria="Vóley y hockey", deporte="Hockey",
          metodo="web", url="https://www.cahockey.org.ar/", patron=r"/noticia/[^/]+/\d+",
          detalle="Leonas, Leones y torneos. La fecha sale del listado. Verificada el 23/10."),
+    dict(id="handball", nombre="Handball Argentina (CAH)", categoria="Más deportes", deporte="Handball",
+         metodo="rss", url="https://handballargentina.org/cah/feed/", detalle="La Garra, Las Guerreras y torneos. Feed con texto completo. Verificada el 23/10."),
+    dict(id="atletismo", nombre="CADA · Atletismo", categoria="Más deportes", deporte="Atletismo",
+         metodo="rss", url="https://cada-atletismo.org/feed/", detalle="Feed con texto completo. Verificada el 23/10."),
+    dict(id="natacion", nombre="CADDA · Natación y acuáticos", categoria="Más deportes", deporte="Natación",
+         metodo="rss", url="https://cadda.org.ar/feed/", detalle="Feed con texto completo. Publica pocas veces por mes. Verificada el 23/10."),
+    dict(id="golf", nombre="AAG · Golf", categoria="Más deportes", deporte="Golf",
+         metodo="rss", url="https://www.aag.org.ar/feed/", detalle="Feed con texto completo. Verificada el 23/10."),
+    dict(id="polo", nombre="AAP · Polo", categoria="Más deportes", deporte="Polo",
+         metodo="web", url="https://www.aapolo.com/noticias", patron=r"/noticias/detalle/\d+$",
+         detalle="Abierto de Tortugas, Hurlingham y Palermo. Fecha dentro de la nota. Verificada el 23/10."),
     dict(id="coa", nombre="Comité Olímpico Argentino", categoria="Olímpicos", deporte="Polideportivo",
          metodo="web", url="https://www.coarg.org.ar/", patron=r"/item/\d+-",
          detalle="Todos los deportes olímpicos. Verificada el 23/10."),
@@ -147,4 +186,5 @@ for i, f in enumerate(FUENTES_BASE):
     f.setdefault("patron", "")
     f.setdefault("filtro", "")
     f.setdefault("idioma", "es")
+    f.setdefault("enlace", "")
     f.setdefault("orden", (i + 1) * 10)
