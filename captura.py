@@ -20,7 +20,7 @@ from bs4 import BeautifulSoup
 ART = timezone(timedelta(hours=-3))
 MAX_HORAS = 72            # solo entran comunicados publicados en las últimas 72 horas
 MAX_POR_FUENTE = 25       # notas nuevas que se leen por fuente y por corrida
-SIN_FECHA_PRIMERA_VEZ = 6 # la primera vez que se lee una fuente, cuántas notas sin fecha entran
+SIN_FECHA_PRIMERA_VEZ = 0 # la primera vez que se lee una fuente, cuántas notas sin fecha entran
 TIMEOUT = 20
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
@@ -119,6 +119,18 @@ def fecha_corta(t):
     if f > hoy + timedelta(days=2):
         f = f.replace(year=hoy.year - 1)
     return f
+
+
+RE_ID = re.compile(r"(?:/|^)(\d{3,9})(?:[_/.-]|$)")
+
+
+def id_numerico(url):
+    """Número de nota en la dirección (/noticia/xxx/3966, /news/11991_, /detalle/9309). None si no hay."""
+    path = urlparse(url).path
+    if RE_EPOCH.search(path):
+        return None
+    ids = [int(x) for x in RE_ID.findall(path) if not (1900 <= int(x) <= 2100)]
+    return ids[-1] if ids else None
 
 
 def fecha_de_url(url):
@@ -237,8 +249,16 @@ def leer_articulo(url):
                                "publish-date", "pubdate", "date", "dc.date"))
              or _fecha_jsonld(soup))
     if not fecha:
-        t = soup.find("time", attrs={"datetime": True})
-        fecha = parse_fecha(t["datetime"]) if t else None
+        # Algunos sitios tienen <time> de plantilla ("{{item.date}}") o de otros bloques: se toma el primero que tenga
+        # una fecha real, prefiriendo el que está dentro de la nota (<article> o su <header>)
+        zonas = [z for z in (soup.find("article"), soup) if z is not None]
+        for z in zonas:
+            for t in z.find_all("time", attrs={"datetime": True}):
+                fecha = parse_fecha(t["datetime"])
+                if fecha:
+                    break
+            if fecha:
+                break
     h1 = soup.find("h1")
     titulo, fuerte = "", True
     if h1 and len(h1.get_text(strip=True)) > 10:
@@ -256,9 +276,9 @@ def leer_articulo(url):
     if not fecha:
         # Último recurso: la primera fecha completa (con año) de la página, cerca del título
         zona = soup.find("article") or soup.body or soup
+        # Si la primera fecha es vieja, la nota se trata como vieja (no como "sin fecha"): así no se cuelan
+        # notas de archivo que los sitios dejan en la portada (CAH, AFA)
         fecha_txt = parse_fecha(zona.get_text(" ", strip=True)[:4000])
-        if fecha_txt and fecha_txt < ahora() - timedelta(days=30):
-            fecha_txt = None   # una fecha vieja en el texto suele ser de otra cosa (pie de página, historia): mejor sin fecha
         return {"titulo": limpiar_titulo(titulo), "titulo_fuerte": fuerte, "fecha": fecha_txt, "fecha_debil": bool(fecha_txt), "texto": texto[:15000]}
     return {"titulo": limpiar_titulo(titulo), "titulo_fuerte": fuerte, "fecha": fecha, "fecha_debil": False, "texto": texto[:15000]}
 
@@ -430,8 +450,11 @@ def leer_web(fuente):
         # Fecha visible en el listado: en el link o en su tarjeta
         fecha = parse_fecha(texto_a)
         if not fecha and a.parent is not None:
+            # La fecha de la tarjeta, solo si esa tarjeta tiene un único link a nota (si no, puede ser de otra nota)
             t = a.parent.get_text(" ", strip=True)
-            if len(t) < 400:
+            otros = {normalizar_url(urljoin(r.url, x["href"])) for x in a.parent.find_all("a", href=True)
+                     if not rx or rx.search(urljoin(r.url, x["href"]))}
+            if len(t) < 400 and len(otros) <= 1:
                 fecha = parse_fecha(t)
         fecha = fecha_de_url(href) or fecha or fecha_corta(texto_a)
         titulo = re.sub(r"(leer m[aá]s|ver m[aá]s|read more)\s*$", "", texto_a, flags=re.I).strip()
@@ -505,7 +528,10 @@ def capturar_fuente(fuente, vistos: dict, prueba=False, limite=MAX_POR_FUENTE):
     if met not in LECTORES:
         return [], {}, {"ok": True, "salteada": True, "mensaje": "pausada"}
     candidatos = LECTORES[met](fuente)
-    ya_leida = any(v.get("f") == fuente["id"] for v in vistos.values())
+    de_fuente = [k for k, v in vistos.items() if v.get("f") == fuente["id"]]
+    ya_leida = bool(de_fuente)
+    ids_previos = [i for i in (id_numerico(k) for k in de_fuente) if i]
+    max_id = max(ids_previos) if ids_previos else None
     filtro = re.compile(fuente["filtro"], re.I) if fuente.get("filtro") else None
     if filtro and not prueba:
         limite = max(limite, 35)   # con filtro se descartan muchas: se leen más por corrida
@@ -566,8 +592,13 @@ def capturar_fuente(fuente, vistos: dict, prueba=False, limite=MAX_POR_FUENTE):
         alertas = []
         if not c.get("fecha"):
             sin_fecha += 1
-            if not prueba and not ya_leida and sin_fecha > SIN_FECHA_PRIMERA_VEZ:
-                continue
+            if not prueba:
+                # Sin fecha solo entran notas que aparecieron después de la última lectura de la fuente
+                # (la primera vez no entra ninguna) y, si la dirección tiene número, que sea más nuevo que los ya vistos
+                nid = id_numerico(c["url"])
+                if not ya_leida or (max_id and nid and nid <= max_id):
+                    nuevos_vistos[k]["x"] = "sin fecha"
+                    continue
             alertas.append("La fuente no muestra fecha de publicación: chequeá que sea nuevo.")
         elif c.get("fecha_debil"):
             alertas.append("Fecha tomada del texto de la página: confirmala.")

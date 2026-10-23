@@ -21,6 +21,7 @@ import requests
 PREFIJO = os.environ.get("CABLERA_PREFIJO", "cab").strip() or "cab"
 K_ITEMS, K_FUENTES, K_VISTOS, K_CORRIDAS = (f"{PREFIJO}:items", f"{PREFIJO}:fuentes",
                                             f"{PREFIJO}:vistos", f"{PREFIJO}:corridas")
+K_META = f"{PREFIJO}:meta"
 
 
 def _cfg():

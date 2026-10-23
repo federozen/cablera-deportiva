@@ -252,7 +252,7 @@ details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
       <h3>Cómo se usa la Cablera</h3>
       <div><b>1 · Llegan solos</b>Cada 2 horas se leen las fuentes oficiales y los comunicados nuevos caen en <i>Nuevas</i>. También podés tocar <i>↻ Capturar ahora</i>.</div>
       <div><b>2 · Elegís</b>Ordená por <i>Más recientes</i> o <i>Más importantes</i>, agrupá por tema (Boca, River, Selección, Tenis…) y filtrá por período, deporte o fuente.</div>
-      <div><b>3 · Pedís la nota</b>Abrí un comunicado y tocá <i>✦ Redactar nota</i>: la IA arma título, bajada y cuerpo estilo Olé. Solo ahí se usa IA.</div>
+      <div><b>3 · Pedís la nota</b>Abrí un comunicado y tocá <i>✦ Redactar nota</i>: la IA escribe una nota nueva estilo Olé. Si es un comunicado, la arma en forma indirecta citando a la fuente; si es una nota del sitio, la reescribe con otro enfoque. Podés forzar el enfoque. Solo ahí se usa IA.</div>
       <div><b>4 · Al CMS</b><i>Copiar nota completa</i> la pasa al portapapeles con formato y la marca como <i>Copiada</i>. Lo que no sirve, <i>Descartar</i>.</div>
       <div><b>Colores</b>La barrita de la izquierda: <span style="color:var(--alta)">roja</span> = prioridad alta (Selección, grandes, lesiones, sanciones, finales), <span style="color:var(--media)">amarilla</span> = media, gris = baja.</div>
       <div><b>Verificar</b>La etiqueta amarilla avisa que hay algo para chequear: sin fecha en la fuente, poco texto, una cita traducida…</div>
@@ -563,6 +563,10 @@ details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
         <div class="row"><input id="ia-ind" type="text" placeholder="Indicaciones opcionales (ej.: enfocá en la lesión de X)" ${iaOff?"disabled":""}></div>
         <div class="row">
           <button type="button" class="btn ia" id="b-red" ${busy||iaOff?"disabled":""}>${busy?'<span class="spin"></span> Redactando…':boton}</button>
+          <select id="ia-modo" aria-label="Enfoque" title="Cómo transformar el material" ${iaOff?"disabled":""}>
+            <option value="auto">Enfoque: que lo decida la IA</option>
+            <option value="comunicado">Es un comunicado → nota indirecta citando la fuente</option>
+            <option value="nota">Es una nota del sitio → reescribirla para Olé</option></select>
           <select id="ia-motor" aria-label="Motor de IA" ${iaOff?"disabled":""}>${opcionesMotor()}</select>
           <span id="ia-err" class="err">${iaOff?"La IA no está configurada en Vercel (falta al menos una clave de motor).":""}</span>
         </div>
@@ -587,7 +591,7 @@ details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
       <p class="bajada">${esc(nota.bajada)}</p>
       <div class="cuerpo">${paras(nota.cuerpo).map(p => `<p>${inline(p).replace(/\n/g,"<br>")}</p>`).join("")}</div>
       ${(nota.etiquetas||[]).length?`<div class="tags">${nota.etiquetas.map(t=>`<span>${esc(t)}</span>`).join("")}</div>`:""}
-      <div class="firma">${nota.motor?`Hecho con IA · ${esc(nota.motor)}`:"Redactada en la Cablera anterior"}${nota.generada?` · ${esc(fecha(nota.generada))}`:""}</div>
+      <div class="firma">${nota.tipo==="comunicado"?"Comunicado → nota indirecta citando la fuente · ":nota.tipo==="nota"?"Nota del sitio reescrita para Olé · ":""}${nota.motor?`Hecho con IA · ${esc(nota.motor)}`:"Redactada en la Cablera anterior"}${nota.generada?` · ${esc(fecha(nota.generada))}`:""}${typeof nota.copiado==="number"?` · ${Math.round(nota.copiado*100)}% de frases repetidas del original`:""}</div>
       <div class="actions">
         <button type="button" class="btn primary" id="b-copy">Copiar nota completa</button>
         <button type="button" class="btn" id="b-copy-t">Copiar título</button>
@@ -619,10 +623,10 @@ details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
   }
   async function redactar(){
     const id = S.sel; if(!id || S.busy[id]) return;
-    const motor = ($("ia-motor")||{}).value || "auto", ind = ($("ia-ind")||{}).value || "";
+    const motor = ($("ia-motor")||{}).value || "auto", ind = ($("ia-ind")||{}).value || "", modo = ($("ia-modo")||{}).value || "auto";
     S.busy[id] = true; renderNote();
     try{
-      const full = await api(`/api/items/${encodeURIComponent(id)}/redactar`, {method:"POST", body:JSON.stringify({motor, indicaciones:ind})});
+      const full = await api(`/api/items/${encodeURIComponent(id)}/redactar`, {method:"POST", body:JSON.stringify({motor, indicaciones:ind, modo})});
       actualizarLite(full); delete S.busy[id]; renderBandeja();
     }catch(e){ delete S.busy[id]; renderNote(); const er = $("ia-err"); if(er) er.textContent = e.message; }
   }

@@ -1,4 +1,4 @@
-# Cablera Deportiva · v1.3
+# Cablera Deportiva · v1.4
 
 Comunicados oficiales de federaciones, ligas y clubes, capturados solos y listos para convertirse en notas estilo Olé.
 
@@ -7,7 +7,7 @@ Comunicados oficiales de federaciones, ligas y clubes, capturados solos y listos
 1. **Captura (sin IA, sin costo).** Cada 2 horas (GitHub Actions) o con **↻ Capturar ahora**, la app lee las fuentes oficiales: feeds RSS, APIs (River, Premier, WordPress) y las webs (scraping). Trae título, fecha, texto completo y link de hasta 25 comunicados nuevos por fuente de las últimas 72 horas, y nunca repite uno ya visto. Si el tiempo no alcanza para todas, las que quedaron afuera se leen primero en la próxima corrida.
 2. **Orden por reglas.** Prioridad alta si el título habla de Selección, Messi, Boca, River, Racing, Independiente, San Lorenzo, renuncias, sanciones, lesiones, finales, convocatorias o Colapinto. Venta de entradas, socios, sponsors, merchandising y efemérides van solos a **Descartadas** (se pueden recuperar).
 3. **Títulos en español.** Los títulos de fuentes en inglés o italiano (UEFA, Premier, Serie A, MLS, ATP, WTA, F1, FIA…) se traducen solos al capturarlos, todos juntos en un único pedido corto a la IA por corrida (motores gratuitos primero; con Claude Haiku cuesta una fracción de centavo). El título original queda visible en la nota. Si la IA no responde, quedan en el idioma original y se traducen al redactar.
-4. **IA a demanda.** En la bandeja ves los títulos originales. Cuando uno te sirve, **✦ Redactar nota**: la IA escribe título, dos alternativos, bajada, cuerpo, etiquetas y lo que hay que chequear. Usa los motores gratuitos primero (Gemini, Mistral, Groq, OpenRouter) y Claude de respaldo. La nota queda guardada: no se paga dos veces. **↻ Otra versión** pide una nueva.
+4. **IA a demanda: una nota nueva, no una copia.** Cuando un comunicado te sirve, **✦ Redactar nota**. La IA primero decide qué es: si es un **comunicado** (la institución anuncia algo: sanción, parte médico, convocatoria, programación…) escribe una nota periodística **indirecta, citando a la fuente** ("Boca informó a través de un comunicado que…"); si es una **nota** que el sitio ya publicó (crónica, previa, entrevista), la **reescribe para Olé** con otro título, otro arranque y otras palabras. El enfoque se puede forzar con el selector. La app mide cuántas frases quedaron iguales al original: si pasa del 25%, pide sola una segunda versión más transformada, y si igual queda parecida lo avisa en "Verificar". Devuelve título, dos alternativos, bajada, cuerpo, etiquetas y lo que hay que chequear, con los motores gratuitos primero. La nota queda guardada (no se paga dos veces) y **↻ Otra versión** pide una nueva.
 5. **Al CMS.** **Copiar nota completa** (con formato) la marca como *Copiada*. Estados: Nuevas, En revisión, Copiadas, Descartadas.
 
 **La bandeja:** arriba, tres secciones explicadas (Bandeja, Fuentes, Actividad) y **? Cómo se usa**. Se puede **ordenar** (más recientes, más importantes, más viejas), **agrupar** (por tema —club, Selección, Pumas, Colapinto, argentinos en el exterior…—, por deporte, por fuente o por día, con grupos plegables), elegir el **período** (6 h, 24 h, 3 días, 7 días, todo) y filtrar por tema, deporte y fuente, cada uno con su cantidad. La app recuerda cómo la dejaste. En el celular, los filtros se abren con **Ordenar y filtrar**.
@@ -29,7 +29,7 @@ También: **+ Pegar comunicado** (lo que llega por mail o WhatsApp), filtros por
 
 El **filtro** deja pasar solo notas que mencionen ciertas palabras (separadas por `|`). Las ligas de afuera vienen filtradas por argentinos.
 
-La fecha de cada nota sale, en este orden, de los metadatos de la página, de la dirección (Independiente y San Lorenzo la llevan), del listado (Boca) o del texto (AFA). Si no hay fecha, la nota entra con el aviso *Verificar*.
+La fecha de cada nota sale, en este orden, de los metadatos de la página, de la etiqueta `<time>` de la nota (Copa Argentina), de la dirección (Independiente y San Lorenzo la llevan), del listado (Boca, Newell's, CAH) o del texto (AFA, CAH). Una nota con fecha vieja nunca entra, aunque el sitio la tenga en la portada. Las notas **sin ninguna fecha** solo entran si aparecieron después de la última lectura de esa fuente (la primera vez no entra ninguna) y, si la dirección tiene número de nota, solo si es más nuevo que los ya vistos; entran con el aviso *Verificar*.
 
 ## Costos
 

@@ -26,7 +26,7 @@ import redaccion
 from fuentes_base import FUENTES_BASE
 from ui import INDEX_HTML
 
-VERSION = "1.3"
+VERSION = "1.4"
 PRESUPUESTO_CAPTURA = int(os.environ.get("CABLERA_PRESUPUESTO_SEG", "200"))
 DIAS_BANDEJA = 14            # la bandeja muestra lo capturado en los últimos 10 días
 DIAS_VISTOS = 20             # se recuerda qué links ya se vieron durante 20 días
@@ -107,7 +107,7 @@ def _liviano(it):
                                    "publicado", "capturado", "deporte", "prioridad", "estado", "motivo", "aviso",
                                    "origen", "idioma", "titulo_fuente")} | {
         "resumen": (it.get("texto") or "")[:260],
-        "nota": {k: nota.get(k) for k in ("titulo", "bajada", "alerta", "motor")} if nota else None,
+        "nota": {k: nota.get(k) for k in ("titulo", "bajada", "alerta", "motor", "tipo")} if nota else None,
     }
 
 
@@ -119,6 +119,35 @@ def guardar_items(nuevos):
     _codigos(nuevos, existentes)
     db.hset_muchos(db.K_ITEMS, {n["id"]: n for n in nuevos})
     return nuevos
+
+
+# ─────────────────────────── saneamiento (una sola vez por versión) ───────────────────────────
+def sanear():
+    """Hasta la v1.3 se colaban notas de archivo sin fecha (CAH, AFA, Copa Argentina) y quedaban como recientes.
+    Se pasan a Descartadas las nuevas sin nota que no tienen fecha o que se publicaron más de 72 h antes de capturarlas."""
+    if db.hget(db.K_META, "saneado") == VERSION:
+        return 0
+    items = db.hgetall(db.K_ITEMS)
+    cambios = {}
+    for iid, it in items.items():
+        if it.get("estado") != "nueva" or it.get("nota") or it.get("origen") in ("manual", "migrada"):
+            continue
+        pub, cap = it.get("publicado") or "", it.get("capturado") or ""
+        motivo = ""
+        if not pub:
+            motivo = "Revisión automática: sin fecha en la fuente, probable nota de archivo"
+        else:
+            try:
+                from datetime import datetime as _dt
+                if _dt.fromisoformat(pub) < _dt.fromisoformat(cap) - timedelta(hours=captura.MAX_HORAS):
+                    motivo = f"Revisión automática: nota vieja (publicada el {pub[8:10]}/{pub[5:7]}/{pub[:4]})"
+            except ValueError:
+                pass
+        if motivo:
+            cambios[iid] = {**it, "estado": "descartada", "motivo": motivo}
+    db.hset_muchos(db.K_ITEMS, cambios)
+    db.hset(db.K_META, "saneado", VERSION)
+    return len(cambios)
 
 
 # ─────────────────────────── títulos en español ───────────────────────────
@@ -214,6 +243,7 @@ class Estado(BaseModel):
 class PedidoRedactar(BaseModel):
     motor: str = "auto"
     indicaciones: str = ""
+    modo: str = "auto"
 
 
 class Pegado(BaseModel):
@@ -223,6 +253,7 @@ class Pegado(BaseModel):
     deporte: str = ""
     redactar: bool = True
     motor: str = "auto"
+    modo: str = "auto"
 
 
 class Fuente(BaseModel):
@@ -264,6 +295,7 @@ def login(x_cablera_clave: str = Header(default="")):
 @app.get("/api/items")
 def listar(x_cablera_clave: str = Header(default=""), dias: int = DIAS_BANDEJA):
     autorizar(x_cablera_clave)
+    sanear()
     items = db.hgetall(db.K_ITEMS)
     corte = captura.iso(captura.ahora() - timedelta(days=max(1, min(dias, 60))))
     vis = [_liviano(i) for i in items.values() if (i.get("capturado") or "") >= corte or i.get("estado") in ("nueva", "revision")]
@@ -304,7 +336,7 @@ def redactar_item(iid: str, body: PedidoRedactar, x_cablera_clave: str = Header(
     if not ia_motores.disponibles():
         raise HTTPException(503, "No hay ningún motor de IA configurado en Vercel.")
     try:
-        nota = redaccion.redactar(it, motor=body.motor, indicaciones=body.indicaciones)
+        nota = redaccion.redactar(it, motor=body.motor, indicaciones=body.indicaciones, modo=body.modo if body.modo in redaccion.MODOS else "auto")
     except (ValueError, RuntimeError) as e:
         raise HTTPException(502, str(e))
     nota["generada"] = captura.iso(captura.ahora())
@@ -331,7 +363,7 @@ def pegar(body: Pegado, x_cablera_clave: str = Header(default="")):
     it["prioridad"] = captura.clasificar(it, {})[0]
     if body.redactar and ia_motores.disponibles():
         try:
-            it["nota"] = redaccion.redactar(it, motor=body.motor) | {"generada": ahora}
+            it["nota"] = redaccion.redactar(it, motor=body.motor, modo=body.modo if body.modo in redaccion.MODOS else "auto") | {"generada": ahora}
         except (ValueError, RuntimeError) as e:
             it["aviso"] = f"No se pudo redactar: {e}"
     guardar_items([it])
