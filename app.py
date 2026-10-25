@@ -201,7 +201,22 @@ def _vistos():
         db.hdel(db.K_VISTOS, *viejos)
         for k in viejos:
             v.pop(k, None)
+    _reabrir_filtradas(v)
     return v
+
+
+def _reabrir_filtradas(v):
+    """Una sola vez: las notas que el filtro de argentinos había dejado afuera quedaron anotadas como vistas.
+    Se las olvida para que, ahora sin filtro, se vuelvan a leer (las de más de 72 h igual se descartan por viejas)."""
+    if db.hget(db.K_META, "reabiertas_intl") == "1":
+        return
+    ids = set(FUENTES_SIN_FILTRO)
+    reabrir = [k for k, x in v.items() if isinstance(x, dict) and x.get("x") == "filtro" and x.get("f") in ids]
+    if reabrir:
+        db.hdel(db.K_VISTOS, *reabrir)
+        for k in reabrir:
+            v.pop(k, None)
+    db.hset(db.K_META, "reabiertas_intl", "1")
 
 
 def capturar(ids=None, origen="manual"):
