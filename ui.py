@@ -264,6 +264,7 @@ details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
       <div class="bar">
         <div class="row">
           <div class="tabs" role="group" aria-label="Estado" id="tabs"></div>
+          <div class="tabs" role="group" aria-label="Ámbito" id="tabs-ambito"></div>
           <span class="sp"></span>
           <button class="btn" id="btn-pegar" type="button">+ Pegar comunicado</button>
         </div>
@@ -278,6 +279,7 @@ details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
             <option value="tema">Por tema (club, Selección, deporte)</option>
             <option value="deporte">Por deporte</option>
             <option value="fuente">Por fuente</option>
+            <option value="categoria">Por categoría (argentino, clubes, internacional…)</option>
             <option value="dia">Por día</option></select></label>
           <label class="fld">Período<select id="f-periodo">
             <option value="6">Últimas 6 horas</option>
@@ -342,7 +344,7 @@ details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
   const LS = "cablera_clave";
   const PREFS = "cablera_prefs";
   const S = {clave:"", cfg:null, items:[], ultima:null, fuentes:[], view:"bandeja", estado:"nueva", deporte:"", fuente:"", red:false, q:"",
-             orden:"recientes", grupo:"", periodo:"72", tema:"", cerrados:{},
+             orden:"recientes", grupo:"", periodo:"72", tema:"", ambito:"", cerrados:{},
              sel:null, cache:{}, busy:{}, probes:{}, editando:null, capturando:false, mostrar:80};
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -439,11 +441,15 @@ details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     const h = Math.round(m / 60); if(h < 24) return `hace ${h} h`;
     const d = Math.round(h / 24); return d === 1 ? "ayer" : `hace ${d} días`;
   }
+  const AMBITOS = [{k:"", label:"Todo"}, {k:"arg", label:"Fútbol argentino"}, {k:"int", label:"Fútbol internacional"}];
+  const AMB_CAT = {"Fútbol argentino":"arg", "Clubes":"arg", "Fútbol internacional":"int", "Ligas del exterior":"int"};
+  function ambitoDe(n){ return AMB_CAT[n.categoria] || ""; }
   function filtrados(sinPeriodo){
     const q = S.q.trim().toLowerCase(), lim = Number(S.periodo) ? Date.now() - Number(S.periodo) * 3600e3 : 0;
     return S.items
       .filter(n => S.estado === "todas" || (n.estado || "nueva") === S.estado)
       .filter(n => sinPeriodo || !lim || fechaRef(n) >= lim || !n.publicado && Date.parse(n.capturado || 0) >= lim)
+      .filter(n => !S.ambito || ambitoDe(n) === S.ambito)
       .filter(n => !S.deporte || n.deporte === S.deporte)
       .filter(n => !S.fuente || n.fuente === S.fuente)
       .filter(n => !S.tema || temaDe(n) === S.tema)
@@ -462,6 +468,7 @@ details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     if(S.grupo === "tema") return temaDe(n);
     if(S.grupo === "deporte") return n.deporte || "Sin deporte";
     if(S.grupo === "fuente") return n.fuente || "Sin fuente";
+    if(S.grupo === "categoria") return n.categoria || "Sin categoría";
     if(S.grupo === "dia"){
       const t = fechaRef(n); if(!t) return "Sin fecha";
       const d = new Date(t), hoy = new Date(); const dd = Math.round((new Date(hoy.toDateString()) - new Date(d.toDateString())) / 864e5);
@@ -494,6 +501,9 @@ details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
   function renderTabs(){
     const cnt = k => k === "todas" ? S.items.length : S.items.filter(n => (n.estado||"nueva") === k).length;
     $("tabs").innerHTML = ESTADOS.map(e => `<button type="button" data-k="${e.k}" title="${e.tip}" aria-pressed="${S.estado===e.k}">${e.label}<span class="n">${cnt(e.k)}</span></button>`).join("");
+    const delEstado = S.items.filter(n => S.estado === "todas" || (n.estado || "nueva") === S.estado);
+    const cA = a => a ? delEstado.filter(n => ambitoDe(n) === a).length : delEstado.length;
+    $("tabs-ambito").innerHTML = AMBITOS.map(a => `<button type="button" data-a="${a.k}" aria-pressed="${S.ambito===a.k}">${a.label}<span class="n">${cA(a.k)}</span></button>`).join("");
     $("vn-bandeja").textContent = cnt("nueva") || "";
   }
   function renderTicker(){
@@ -812,9 +822,10 @@ details.grupo .items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     if(t.closest("#views") && t.dataset.view){ setView(t.dataset.view); return; }
     if(t.id === "b-filtros"){ const b = t.closest(".bar"); b.classList.toggle("abierta"); t.setAttribute("aria-expanded", String(b.classList.contains("abierta"))); t.textContent = b.classList.contains("abierta") ? "Ocultar filtros ▴" : "Ordenar y filtrar ▾"; return; }
     if(t.id === "f-limpiar"){
-      Object.assign(S, {deporte:"", fuente:"", tema:"", q:"", red:false, periodo:"0", mostrar:80});
+      Object.assign(S, {deporte:"", fuente:"", tema:"", ambito:"", q:"", red:false, periodo:"0", mostrar:80});
       $("f-q").value = ""; $("f-red").checked = false; $("f-periodo").value = "0"; guardarPrefs(); renderDeportes(); renderList(); return;
     }
+    if(t.closest("#tabs-ambito")){ S.ambito = t.dataset.a || ""; S.sel = null; S.mostrar = 80; renderBandeja(); return; }
     if(t.closest("#tabs")){ S.estado = t.dataset.k; S.sel = null; S.mostrar = 80; renderDeportes(); renderBandeja(); return; }
     if(t.classList.contains("item")){ abrir(t.dataset.id); return; }
     if(t.id === "b-more"){ S.mostrar += 80; renderList(); return; }
