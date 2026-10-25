@@ -31,6 +31,9 @@ FILTRO_TENIS = (r"argentin|cer[uú]ndolo|etcheverry|b[aá]ez|navone|comesa[ñn]a
                 r"ugo carabelli|schwartzman|del potro|zeballos|podoroska|solana sierra|riera|carl[eé]|ger[ae]ld|coria")
 FILTRO_RUGBY = r"argentin|pumas|pumitas|leoncitas|contepomi|montoya|kremer|matera|carreras|mallia"
 
+# Estas fuentes ya existen en la base con el filtro viejo: app.py se lo saca una sola vez
+FUENTES_SIN_FILTRO = ("uefa", "premier", "laliga", "seriea")
+
 FUENTES_BASE = [
     # ── Fútbol argentino
     dict(id="afa-noticias", nombre="AFA · Noticias", categoria="Fútbol argentino", deporte="Fútbol",
@@ -96,20 +99,26 @@ FUENTES_BASE = [
          detalle="Feed sin texto completo: se lee cada nota. Verificada el 23/10."),
     dict(id="uefa", nombre="UEFA", categoria="Fútbol internacional", deporte="Fútbol", idioma="en",
          metodo="web", url="https://www.uefa.com/news-media/", patron=r"/news/[0-9a-f]{4}-",
-         filtro=FILTRO_ARGENTINOS, detalle="En inglés. Solo notas con argentinos. Verificada el 23/10."),
+         detalle="En inglés. Todas las notas de UEFA (antes solo argentinos). Verificada el 23/10."),
+    dict(id="uefa-champions", nombre="UEFA Champions League", categoria="Fútbol internacional", deporte="Fútbol", idioma="en",
+         metodo="web", url="https://www.uefa.com/uefachampionsleague/news/", patron=r"/news/[0-9a-f]{4}-",
+         detalle="En inglés. SIN VERIFICAR: tocá Probar. Si trae lo mismo que UEFA, dejala; si no trae nada, pausala."),
+    dict(id="uefa-europa", nombre="UEFA Europa League", categoria="Fútbol internacional", deporte="Fútbol", idioma="en",
+         metodo="web", url="https://www.uefa.com/uefaeuropaleague/news/", patron=r"/news/[0-9a-f]{4}-",
+         detalle="En inglés. SIN VERIFICAR: tocá Probar. Si trae lo mismo que UEFA, dejala; si no trae nada, pausala."),
     dict(id="fifa", nombre="FIFA", categoria="Fútbol internacional", deporte="Fútbol",
          metodo="pausada", url="https://inside.fifa.com/es/news",
-         detalle="Carga el contenido con JavaScript: no se puede leer sin navegador."),
+         detalle="Carga el contenido con JavaScript: no se puede leer sin navegador. Usar + Pegar comunicado."),
     # ── Ligas del exterior
     dict(id="premier", nombre="Premier League", categoria="Ligas del exterior", deporte="Fútbol", idioma="en",
          metodo="premier", url="https://api.premierleague.com/content/premierleague/text/en?pageSize=40&detail=DETAILED",
-         filtro=FILTRO_ARGENTINOS, detalle="API de la Premier: comunicados de los clubes (link al sitio de cada club). Solo notas con argentinos. Verificada el 23/10."),
+         detalle="API de la Premier: comunicados de los clubes (link al sitio de cada club). Todas las notas. Verificada el 23/10."),
     dict(id="laliga", nombre="LaLiga", categoria="Ligas del exterior", deporte="Fútbol",
          metodo="web", url="https://www.laliga.com/noticias", patron=r"/noticias/[a-z0-9-]{12,}/?$",
-         filtro=FILTRO_ARGENTINOS, detalle="Mucho institucional: solo notas con argentinos. Verificada el 23/10."),
+         detalle="Todas las notas (hay mucho institucional). Verificada el 23/10."),
     dict(id="seriea", nombre="Serie A", categoria="Ligas del exterior", deporte="Fútbol", idioma="it",
          metodo="web", url="https://www.legaseriea.it/it", patron=r"/serie-a/news/[a-z0-9-]{8,}",
-         filtro=FILTRO_ARGENTINOS, detalle="En italiano. Solo notas con argentinos. Verificada el 23/10."),
+         detalle="En italiano. Todas las notas. Verificada el 23/10."),
     dict(id="mls", nombre="MLS", categoria="Ligas del exterior", deporte="Fútbol", idioma="en",
          metodo="web", url="https://www.mlssoccer.com/news/", patron=r"/news/[a-z0-9-]{12,}",
          filtro=FILTRO_ARGENTINOS, detalle="En inglés. Messi, Inter Miami y argentinos. Verificada el 23/10."),

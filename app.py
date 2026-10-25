@@ -23,7 +23,7 @@ import almacen as db
 import captura
 import ia_motores
 import redaccion
-from fuentes_base import FUENTES_BASE
+from fuentes_base import FUENTES_BASE, FUENTES_SIN_FILTRO
 from ui import INDEX_HTML
 
 VERSION = "1.4"
@@ -53,10 +53,28 @@ async def _error_almacen(_req: Request, e: db.ErrorAlmacen):
 
 
 # ─────────────────────────── fuentes ───────────────────────────
+def _quitar_filtros(fs):
+    """Una sola vez: UEFA, Premier, LaLiga y Serie A traían solo notas con argentinos. Ahora traen todo."""
+    if db.hget(db.K_META, "sin_filtro_intl") == "1":
+        return
+    base = {f["id"]: f for f in FUENTES_BASE}
+    cambios = {}
+    for fid in FUENTES_SIN_FILTRO:
+        f = fs.get(fid)
+        if f and f.get("filtro"):
+            f = {**f, "filtro": "", "detalle": base.get(fid, {}).get("detalle", f.get("detalle", ""))}
+            cambios[fid] = f
+            fs[fid] = f
+    if cambios:
+        db.hset_muchos(db.K_FUENTES, cambios)
+    db.hset(db.K_META, "sin_filtro_intl", "1")
+
+
 def fuentes() -> dict:
     """Fuentes guardadas. Las fuentes nuevas de fuentes_base.py se suman solas (salvo las que un editor borró)."""
     fs = db.hgetall(db.K_FUENTES)
     borradas = fs.pop("_borradas", None) or []
+    _quitar_filtros(fs)
     faltan = {f["id"]: {**f, "estado": "pausada" if f["metodo"] == "pausada" else "sin probar"}
               for f in FUENTES_BASE if f["id"] not in fs and f["id"] not in borradas}
     if faltan:
